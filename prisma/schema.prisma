@@ -1,0 +1,311 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Todas las tablas usan:
+//  - id String (UUID): generado por el cliente, evita colisiones al sincronizar
+//  - updated_at: permite sincronización incremental (traer cambios desde una fecha)
+//  - deleted_at: soft delete, la sync propaga borrados sin perder historial
+
+model Categoria {
+  id          String     @id @default(uuid())
+  nombre      String
+  descripcion String?
+  usuario_id  String?
+  deleted_at  DateTime?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+
+  productos   Producto[]
+
+  @@index([nombre])
+  @@map("categorias")
+}
+
+model Producto {
+  id            String   @id @default(uuid())
+  codigo        String
+  nombre        String
+  descripcion   String?
+  categoria_id  String?
+  unidad        String   @default("pza")
+  precio_compra Decimal  @default(0) @db.Decimal(12, 2)
+  precio_venta  Int      @default(0)
+  stock         Int      @default(0)
+  stock_minimo  Int      @default(0)
+  activo        Boolean  @default(true)
+  usuario_id    String?
+  deleted_at    DateTime?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  categoria     Categoria? @relation(fields: [categoria_id], references: [id])
+  lotes         Lote[]
+  movimientos   Movimiento[]
+  compra_detalle  CompraDetalle[]
+  venta_detalle   VentaDetalle[]
+
+  @@index([codigo])
+  @@index([categoria_id])
+  @@map("productos")
+}
+
+model Lote {
+  id                String   @id @default(uuid())
+  producto_id       String
+  cantidad_inicial  Int
+  cantidad_restante Int
+  costo_unitario    Decimal  @default(0) @db.Decimal(12, 2)
+  usuario_id        String?
+  deleted_at        DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  producto          Producto @relation(fields: [producto_id], references: [id])
+  venta_detalle     VentaDetalle[]
+
+  @@index([producto_id])
+  @@map("lotes")
+}
+
+model Movimiento {
+  id          String    @id @default(uuid())
+  producto_id String
+  tipo        String
+  cantidad    Int
+  motivo      String?
+  usuario_id  String?
+  deleted_at  DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  producto    Producto  @relation(fields: [producto_id], references: [id])
+
+  @@index([producto_id])
+  @@index([created_at])
+  @@map("movimientos")
+}
+
+model Proveedor {
+  id         String   @id @default(uuid())
+  nombre     String
+  contacto   String?
+  usuario_id String?
+  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  compras    Compra[]
+  cuentas    CuentaPagar[]
+
+  @@index([nombre])
+  @@map("proveedores")
+}
+
+model Cliente {
+  id         String        @id @default(uuid())
+  nombre     String
+  usuario_id String?
+  deleted_at DateTime?
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+
+  cuentas    CuentaCobrar[]
+
+  @@index([nombre])
+  @@map("clientes")
+}
+
+model Compra {
+  id           String   @id @default(uuid())
+  proveedor_id String
+  total        Decimal  @default(0) @db.Decimal(12, 2)
+  usuario_id   String?
+  deleted_at   DateTime?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  proveedor    Proveedor       @relation(fields: [proveedor_id], references: [id])
+  detalle      CompraDetalle[]
+  cuentas      CuentaPagar[]
+
+  @@index([proveedor_id])
+  @@map("compras")
+}
+
+model CompraDetalle {
+  id            String  @id @default(uuid())
+  compra_id     String
+  producto_id   String
+  cantidad      Int
+  costo_unitario Decimal @db.Decimal(12, 2)
+  usuario_id    String?
+  deleted_at    DateTime?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  compra        Compra   @relation(fields: [compra_id], references: [id])
+  producto      Producto @relation(fields: [producto_id], references: [id])
+
+  @@index([compra_id])
+  @@map("compra_detalle")
+}
+
+model Venta {
+  id         String   @id @default(uuid())
+  total      Int      @default(0)
+  ganancia   Int      @default(0)
+  metodo_pago String?
+  nota       String?
+  usuario_id String?
+  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  detalle    VentaDetalle[]
+  pagos      VentaPago[]
+  cuentas    CuentaCobrar[]
+
+  @@map("ventas")
+}
+
+// Desglose de pagos de una venta: una fila por método usado
+// (una venta mixta tiene una fila en efectivo y otra en transferencia).
+model VentaPago {
+  id         String   @id @default(uuid())
+  venta_id   String
+  metodo     String
+  monto      Int      @default(0)
+  usuario_id String?
+  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  venta      Venta    @relation(fields: [venta_id], references: [id])
+
+  @@index([venta_id])
+  @@map("venta_pagos")
+}
+
+model VentaDetalle {
+  id             String  @id @default(uuid())
+  venta_id       String
+  producto_id    String
+  lote_id        String
+  cantidad       Int
+  precio_unitario Int
+  costo_unitario Decimal @db.Decimal(12, 2)
+  presentacion_nombre String?
+  presentacion_factor Int?
+  usuario_id     String?
+  deleted_at     DateTime?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  venta          Venta    @relation(fields: [venta_id], references: [id])
+  producto       Producto @relation(fields: [producto_id], references: [id])
+  lote           Lote     @relation(fields: [lote_id], references: [id])
+
+  @@index([venta_id])
+  @@map("venta_detalle")
+}
+
+model CuentaCobrar {
+  id         String   @id @default(uuid())
+  venta_id   String?
+  cliente_id String
+  concepto   String?
+  total      Int
+  usuario_id String?
+  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  cliente    Cliente      @relation(fields: [cliente_id], references: [id])
+  venta      Venta?       @relation(fields: [venta_id], references: [id])
+  abonos     AbonoCobrar[]
+
+  @@index([cliente_id])
+  @@map("cuentas_cobrar")
+}
+
+model AbonoCobrar {
+  id        String   @id @default(uuid())
+  cuenta_id String
+  valor     Int
+  usuario_id String?
+  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  cuenta    CuentaCobrar @relation(fields: [cuenta_id], references: [id])
+
+  @@index([cuenta_id])
+  @@map("abonos_cobrar")
+}
+
+model CuentaPagar {
+  id          String   @id @default(uuid())
+  compra_id   String?
+  proveedor_id String
+  concepto    String?
+  total       Decimal  @db.Decimal(12, 2)
+  usuario_id  String?
+  deleted_at  DateTime?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  proveedor   Proveedor    @relation(fields: [proveedor_id], references: [id])
+  compra      Compra?      @relation(fields: [compra_id], references: [id])
+  pagos       PagoPagar[]
+
+  @@index([proveedor_id])
+  @@map("cuentas_pagar")
+}
+
+model PagoPagar {
+  id        String   @id @default(uuid())
+  cuenta_id String
+  valor     Decimal  @db.Decimal(12, 2)
+  usuario_id String?
+  deleted_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  cuenta    CuentaPagar @relation(fields: [cuenta_id], references: [id])
+
+  @@index([cuenta_id])
+  @@map("pagos_pagar")
+}
+
+model Usuario {
+  id         String   @id @default(uuid())
+  usuario    String   @unique
+  nombre     String
+  clave_hash String
+  rol        String   @default("operador")
+  activo     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("usuarios")
+}
+
+// Changelog de sincronización: una fila por cada escritura aplicada en el
+// servidor. El cursor `seq` (autoincremental) reemplaza a la comparación de
+// fechas como mecanismo delta: cada cliente avanza su propio last_seq y nunca
+// pierde cambios por diferencias de reloj.
+model Cambio {
+  seq     Int      @id @default(autoincrement())
+  tabla   String
+  fila_id String
+  fecha   DateTime @default(now())
+
+  @@index([seq])
+  @@map("cambios")
+}

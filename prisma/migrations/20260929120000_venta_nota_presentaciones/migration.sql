@@ -1,0 +1,3 @@
+-- Las columnas ya existian en la base (agregadas manualmente):
+--   ventas.nota, venta_detalle.presentacion_nombre, venta_detalle.presentacion_factor
+-- Esta migracion solo registra el estado en el historial de Prisma (baseline).
