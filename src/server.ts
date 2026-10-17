@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import path from 'path';
+import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import { prisma } from './prisma';
@@ -7,6 +9,17 @@ import { sincronizar, SyncPayload } from './sync';
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
+
+// App web (carpeta `web/`, copia del build de Ionic): se sirve desde el mismo
+// puerto que la API para que el cliente la abra en el navegador sin otro server.
+const WEB_DIR = path.join(__dirname, '..', 'web');
+if (fs.existsSync(WEB_DIR)) {
+  app.use(express.static(WEB_DIR));
+  // Fallback SPA: cualquier ruta que no sea de la API devuelve index.html
+  app.get(/^(?!\/(api|health)).*/, (_req, res) => {
+    res.sendFile(path.join(WEB_DIR, 'index.html'));
+  });
+}
 
 app.get('/health', async (_req, res) => {
   try {

@@ -17,3 +17,11 @@ server.log
 .DS_Store
 Thumbs.db
 nul
+
+# Artefactos de build/despliegue (regenerables)
+deploy-temp/
+deploy-backend-presentaciones.zip
+kit/
+kitdist/
+kitprisma/
+web/

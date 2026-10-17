@@ -49,10 +49,30 @@ model Producto {
   movimientos   Movimiento[]
   compra_detalle  CompraDetalle[]
   venta_detalle   VentaDetalle[]
+  presentaciones Presentacion[]
 
   @@index([codigo])
   @@index([categoria_id])
   @@map("productos")
+}
+
+// Presentaciones de venta de un producto (p. ej. "Cava" = caja de 30): se
+// venden por unidad de presentación y el detalle guarda nombre y factor.
+model Presentacion {
+  id          String   @id @default(uuid())
+  producto_id String
+  nombre      String
+  factor      Int
+  precio_venta Decimal? @db.Decimal(12, 2)
+  usuario_id  String?
+  deleted_at  DateTime?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  producto    Producto @relation(fields: [producto_id], references: [id])
+
+  @@index([producto_id])
+  @@map("presentaciones")
 }
 
 model Lote {
@@ -281,6 +301,21 @@ model PagoPagar {
 
   @@index([cuenta_id])
   @@map("pagos_pagar")
+}
+
+// Base de caja entregada para operar el día (vueltos): en efectivo y en cuenta.
+model BaseCaja {
+  id            String   @id @default(uuid())
+  fecha         String
+  base_efectivo Int      @default(0)
+  base_cuenta   Int      @default(0)
+  usuario_id    String?
+  deleted_at    DateTime?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([fecha])
+  @@map("bases")
 }
 
 model Usuario {

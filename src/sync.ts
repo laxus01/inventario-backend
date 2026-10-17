@@ -17,10 +17,12 @@ import { prisma } from './prisma';
 
 const TABLAS = [
   'usuarios',
+  'bases',
   'categorias',
   'proveedores',
   'clientes',
   'productos',
+  'presentaciones',
   'lotes',
   'movimientos',
   'compras',
@@ -60,9 +62,11 @@ type ClientePrisma = PrismaClient | Prisma.TransactionClient;
 function delegadosDe(cliente: ClientePrisma): Record<NombreTabla, DelegadoGenerico> {
   return {
     categorias: cliente.categoria,
+    bases: cliente.baseCaja,
     proveedores: cliente.proveedor,
     clientes: cliente.cliente,
     productos: cliente.producto,
+    presentaciones: cliente.presentacion,
     lotes: cliente.lote,
     movimientos: cliente.movimiento,
     compras: cliente.compra,
@@ -83,7 +87,9 @@ function delegadosDe(cliente: ClientePrisma): Record<NombreTabla, DelegadoGeneri
  * envía un decimal (p. ej. por un cálculo de ganancia), se redondea aquí.
  */
 const CAMPOS_ENTEROS: Partial<Record<NombreTabla, string[]>> = {
+  bases: ['base_efectivo', 'base_cuenta'],
   productos: ['stock', 'stock_minimo', 'precio_venta'],
+  presentaciones: ['factor'],
   lotes: ['cantidad_inicial', 'cantidad_restante'],
   movimientos: ['cantidad'],
   compra_detalle: ['cantidad'],
@@ -101,6 +107,7 @@ const CAMPOS_ENTEROS: Partial<Record<NombreTabla, string[]>> = {
  */
 const CAMPOS_PERMITIDOS: Record<NombreTabla, string[]> = {
   usuarios: ['usuario', 'nombre', 'clave_hash', 'rol', 'activo', 'created_at', 'updated_at'],
+  bases: ['fecha', 'base_efectivo', 'base_cuenta', 'usuario_id', 'deleted_at', 'created_at', 'updated_at'],
   categorias: ['nombre', 'descripcion', 'usuario_id', 'deleted_at', 'created_at', 'updated_at'],
   proveedores: ['nombre', 'contacto', 'usuario_id', 'deleted_at', 'created_at', 'updated_at'],
   clientes: ['nombre', 'usuario_id', 'deleted_at', 'created_at', 'updated_at'],
@@ -109,6 +116,7 @@ const CAMPOS_PERMITIDOS: Record<NombreTabla, string[]> = {
     'precio_venta', 'stock', 'stock_minimo', 'activo', 'usuario_id', 'deleted_at',
     'created_at', 'updated_at',
   ],
+  presentaciones: ['producto_id', 'nombre', 'factor', 'precio_venta', 'usuario_id', 'deleted_at', 'created_at', 'updated_at'],
   lotes: ['producto_id', 'cantidad_inicial', 'cantidad_restante', 'costo_unitario', 'usuario_id', 'deleted_at', 'created_at', 'updated_at'],
   movimientos: ['producto_id', 'tipo', 'cantidad', 'motivo', 'usuario_id', 'deleted_at', 'created_at', 'updated_at'],
   compras: ['proveedor_id', 'total', 'usuario_id', 'deleted_at', 'created_at', 'updated_at'],
