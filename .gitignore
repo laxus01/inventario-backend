@@ -25,3 +25,6 @@ kit/
 kitdist/
 kitprisma/
 web/
+artifacts/
+tools/Updater/bin/
+tools/Updater/obj/

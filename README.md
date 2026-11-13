@@ -72,13 +72,37 @@ npm start
 `npm run dev` ejecuta directamente `src/server.ts`, pero no tiene reinicio
 automatico: detenlo y vuelve a iniciarlo despues de cambiar el codigo.
 
+## Crear el actualizador para el equipo cliente
+
+En Windows, con Node.js/npm y el SDK de .NET 8 instalados, ejecuta desde la
+carpeta del backend:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\crear-actualizador.ps1 -Version "1.0.6"
+```
+
+El script compila el backend y la web de producción y genera un único ejecutable
+autónomo en `artifacts\Inventario-Actualizar-1.0.6.exe`. Si el frontend no está
+en la carpeta hermana `inventario`, indica su ubicación con `-FrontendPath`.
+Entrega ese `.exe` al cliente. Debe ejecutarlo como administrador y seleccionar
+la carpeta raíz `Inventario Movil`, que contiene las carpetas hermanas
+`inventario` e `inventario-backend`. El actualizador intenta detectarla si se
+ejecuta desde esa estructura. Reemplaza `inventario-backend\dist` e
+`inventario\www`, sin modificar el código fuente ni `.env`.
+
+El actualizador respalda `inventario-backend\dist` e `inventario\www`, reinicia
+`InventarioAPI` y verifica `/health`. Conserva `.env` y los datos de MySQL; no
+instala dependencias ni ejecuta migraciones. Los cambios que requieran modificar
+tablas deben tratarse por separado y contar con autorización explícita. El
+respaldo queda en `.updates\backups` dentro de la carpeta raíz del proyecto.
+
 ## Direcciones utiles
 
 | Direccion | Uso |
 | --- | --- |
 | `GET http://localhost:3000/health` | Verifica la conexion a MySQL mediante una consulta de lectura. |
 | `POST http://localhost:3000/api/sync` | Sincroniza datos; puede escribir en la base de datos. No usar como prueba de conectividad. |
-| `http://localhost:3000` | Sirve la aplicacion web si la carpeta `web/` contiene su build, incluido `index.html`. |
+| `http://localhost:3000` | Sirve la aplicacion web desde `inventario\www`; `inventario-backend\web` queda como compatibilidad con el kit antiguo. |
 
 El servidor escucha en `0.0.0.0`, por lo que tambien puede recibir conexiones
 desde otros equipos. Para acceder desde un celular de la misma red, usa

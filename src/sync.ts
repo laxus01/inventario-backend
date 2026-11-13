@@ -217,8 +217,7 @@ async function aplicarTabla(
         `[sync] ERROR aplicando fila en ${tabla} (${id})`,
         `\n  codigo Prisma: ${err.code ?? 'desconocido'}`,
         `\n  meta: ${JSON.stringify(err.meta ?? null)}`,
-        `\n  datos de la fila: ${JSON.stringify(data)}`,
-        `\n  fila original: ${JSON.stringify(fila)}`,
+        `\n  campos recibidos: ${Object.keys(data).join(', ')}`,
       );
       if (err.code === 'P2002') {
         // Colisión de campo único (p. ej. usuarios.usuario cuando el mismo
@@ -362,7 +361,7 @@ export async function sincronizar(payload: SyncPayload) {
       if (resultado.fallidos.length > 0) fallidos[tabla] = resultado.fallidos;
       console.log(`[sync] ${tabla}: ${resultado.aplicados} fila(s) aplicada(s) de ${filas.length}`);
     }
-  });
+  }, { maxWait: 10_000, timeout: 60_000 });
 
   // Pull: lotes por cursor (clientes nuevos) o delta por fecha (compatibilidad).
   if (modoCursor) {
