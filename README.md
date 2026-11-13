@@ -96,3 +96,24 @@ No expongas el puerto a Internet sin proteccion adicional.
   `npm run build` y reinicia el proceso.
 - **Error 401 al sincronizar:** comprueba que `x-sync-token` coincida con
   `SYNC_TOKEN`, si esta configurado.
+
+## Actualizacion en el equipo cliente
+
+Para llevar cambios al PC del cliente se genera un paquete zip con
+`scripts/actualizar-backend.ps1` y una carpeta `payload/` (build compilado,
+`prisma/`, `package.json`, `package-lock.json` y `node_modules/` solo con
+dependencias de produccion, incluyendo el engine de Windows de Prisma).
+
+El cliente descomprime el zip y ejecuta `actualizar-backend.ps1`: el script
+pide la ruta del backend, respalda `dist/`, `web/`, `prisma/` y
+`node_modules/` en `backups/<fecha>/`, detiene el servicio `InventarioAPI`,
+copia los archivos nuevos, ejecuta `prisma migrate deploy` con el `.env`
+existente, arranca el servicio y verifica `/health`.
+
+Notas:
+
+- `prisma` y `@prisma/client` son `dependencies` (no dev) para que el payload
+  de produccion incluya el CLI de migraciones y el cliente generado.
+- `binaryTargets = ["native", "windows"]` en `schema.prisma` hace que
+  `prisma generate` incluya el engine de Windows ademas del nativo.
+- El paquete no incluye `.env` ni `web/`; la web se actualiza aparte si cambia.
